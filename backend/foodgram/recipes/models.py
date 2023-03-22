@@ -18,9 +18,9 @@ class Ingredient(models.Model):
 
 
 class Tag(models.Model):
-    name = models.CharField(max_length=200, verbose_name='Тег')
-    color = models.CharField(max_length=7, verbose_name='Цвет')
-    slug = models.CharField(max_length=200)
+    name = models.CharField(max_length=200, verbose_name='Тег', unique=True)
+    color = models.CharField(max_length=7, verbose_name='Цвет', unique=True)
+    slug = models.CharField(max_length=200, unique=True)
 
     class Meta:
         verbose_name = 'Тег'
@@ -34,14 +34,15 @@ class Recipe(models.Model):
     author = models.ForeignKey(
         User,
         related_name='recipes',
-        verbose_name='Автор'
+        verbose_name='Автор',
+        on_delete=models.CASCADE
     )
 
     name = models.CharField('Название', max_length=200)
 
     image = models.ImageField(
         verbose_name='Изображение',
-        upload_to='recipes/'
+        upload_to='media/'
     )
 
     text = models.TextField('Описание', max_length=1000)
