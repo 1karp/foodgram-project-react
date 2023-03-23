@@ -19,10 +19,14 @@ class TagSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = '__all__'
-
-    # def get_recipes_count(self, user):
-    #     return user.recipes.count()
+        fields = (
+            'email',
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            # 'is_subscribed',
+        )
 
 
 class RecipeSerializer(serializers.ModelSerializer):
