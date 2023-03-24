@@ -28,6 +28,5 @@ router_v1.register(
 
 urlpatterns = [
     path('v1/', include(router_v1.urls)),
-    # path('v1/auth/signup/', register, name='register'),
-    # path('v1/auth/token/', get_token, name='token'),
+    path('v1/auth/', include('djoser.urls.authtoken')),
 ]

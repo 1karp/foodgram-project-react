@@ -1,4 +1,4 @@
-from recipes.models import Ingredient, Recipe, Tag
+from recipes.models import Ingredient, Recipe, Tag, Favorites, Cart
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from users.models import Follow, User
 
@@ -48,6 +48,8 @@ class UserSerializer(ModelSerializer):
 class RecipeSerializer(ModelSerializer):
     tags = TagSerializer(many=True, read_only=True)
     author = UserSerializer(read_only=True)
+    is_favorited = SerializerMethodField()
+    is_in_shopping_cart = SerializerMethodField()
 
     class Meta:
         model = Recipe
@@ -56,13 +58,25 @@ class RecipeSerializer(ModelSerializer):
             'tags',
             'author',
             'ingredients',
-            # 'is_favorited',
-            # 'is_in_shopping_cart',
+            'is_favorited',
+            'is_in_shopping_cart',
             'name',
             'image',
             'text',
             'cooking_time',
         )
+
+    def get_is_favorited(self, recipe):
+        user = self.context.get('request').user
+        return user.is_authenticated and Favorites.objects.filter(
+            user=user, recipe=recipe.id
+        ).exists()
+
+    def get_is_in_shopping_cart(self, recipe):
+        user = self.context.get('request').user
+        return user.is_authenticated and Cart.objects.filter(
+            user=user, recipe=recipe.id
+        ).exists()
 
 
 class UserFollowSerializer(UserSerializer):

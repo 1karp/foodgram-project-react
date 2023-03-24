@@ -85,3 +85,51 @@ class RecipeIngredient(models.Model):
         verbose_name='Количество',
         validators=[MinValueValidator(1)],
     )
+
+
+class Cart(models.Model):
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        verbose_name='Рецепты в корзине',
+        related_name='in_cart',
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name='Пользователь',
+        related_name='cart',
+    )
+    date = models.DateTimeField(
+        verbose_name='Добавлен в корзину',
+        auto_now_add=True,
+        editable=False
+    )
+
+    class Meta:
+        verbose_name = 'Рецепт в корзине'
+        unique_together = ('recipe', 'user')
+
+
+class Favorites(models.Model):
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        verbose_name='Рецепты в избранном',
+        related_name='in_favorites',
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name='Пользователь',
+        related_name='favorites',
+    )
+    date = models.DateTimeField(
+        verbose_name='Добавлен в избранное',
+        auto_now_add=True,
+        editable=False
+    )
+
+    class Meta:
+        verbose_name = 'Рецепты в избранном'
+        unique_together = ('recipe', 'user')
