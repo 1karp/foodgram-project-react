@@ -1,22 +1,32 @@
-from rest_framework import serializers
-from recipes.models import Ingredient, Tag, Recipe
-from users.models import User
+from recipes.models import Ingredient, Recipe, Tag
+from rest_framework.serializers import ModelSerializer, SerializerMethodField
+from users.models import Follow, User
 
 
-class IngredientSerializer(serializers.ModelSerializer):
+class ShortRecipeSerializer(ModelSerializer):
+    class Meta:
+        model = Recipe
+        fields = 'id', 'name', 'image', 'cooking_time'
+        read_only_fields = '__all__',
+
+
+class IngredientSerializer(ModelSerializer):
     class Meta:
         model = Ingredient
         fields = '__all__'
+        read_only_fields = '__all__',
 
 
-class TagSerializer(serializers.ModelSerializer):
+class TagSerializer(ModelSerializer):
     class Meta:
         model = Tag
         fields = '__all__'
         read_only_fields = '__all__',
 
 
-class UserSerializer(serializers.ModelSerializer):
+class UserSerializer(ModelSerializer):
+    is_subscribed = SerializerMethodField()
+
     class Meta:
         model = User
         fields = (
@@ -25,11 +35,17 @@ class UserSerializer(serializers.ModelSerializer):
             'username',
             'first_name',
             'last_name',
-            # 'is_subscribed',
+            'is_subscribed',
         )
 
+    def get_is_subscribed(self, user):
+        request = self.context.get('request')
+        if request is None or request.user.is_anonymous:
+            return False
+        return Follow.objects.filter(user=request.user, author=user).exists()
 
-class RecipeSerializer(serializers.ModelSerializer):
+
+class RecipeSerializer(ModelSerializer):
     tags = TagSerializer(many=True, read_only=True)
     author = UserSerializer(read_only=True)
 
@@ -47,3 +63,25 @@ class RecipeSerializer(serializers.ModelSerializer):
             'text',
             'cooking_time',
         )
+
+
+class UserFollowSerializer(UserSerializer):
+    recipes = ShortRecipeSerializer(many=True, read_only=True)
+    recipes_count = SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = (
+            'email',
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'is_subscribed',
+            'recipes',
+            'recipes_count',
+        )
+        read_only_fields = '__all__',
+
+    def get_recipes_count(self, user):
+        return user.recipes.count()
