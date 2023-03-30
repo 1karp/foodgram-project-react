@@ -36,13 +36,27 @@ class UserSerializer(ModelSerializer):
             'first_name',
             'last_name',
             'is_subscribed',
+            'password',
         )
+        extra_kwargs = {'password': {'write_only': True}}
 
     def get_is_subscribed(self, user):
         request = self.context.get('request')
         if request is None or request.user.is_anonymous:
             return False
         return Follow.objects.filter(user=request.user, author=user).exists()
+
+    def create(self, validated_data: dict) -> User:
+        user = User(
+            email=validated_data['email'],
+            username=validated_data['username'],
+            first_name=validated_data['first_name'],
+            last_name=validated_data['last_name'],
+            password=validated_data['password'],
+        )
+        user.set_password(validated_data['password'])
+        user.save()
+        return user
 
 
 class RecipeSerializer(ModelSerializer):
@@ -99,3 +113,37 @@ class UserFollowSerializer(UserSerializer):
 
     def get_recipes_count(self, user):
         return user.recipes.count()
+
+
+# class TokenSerializer(Serializer):
+#     email = CharField(
+#         label='Email',
+#         write_only=True)
+#     password = CharField(
+#         label='Пароль',
+#         style={'input_type': 'password'},
+#         trim_whitespace=False,
+#         write_only=True)
+#     token = CharField(
+#         label='Токен',
+#         read_only=True)
+
+#     def validate(self, attrs):
+#         email = attrs.get('email')
+#         password = attrs.get('password')
+#         if email and password:
+#             user = authenticate(
+#                 request=self.context.get('request'),
+#                 email=email,
+#                 password=password)
+#             if not user:
+#                 raise ValidationError(
+#                     ERR_MSG,
+#                     code='authorization')
+#         else:
+#             msg = 'Необходимо указать "адрес электронной почты" и "пароль".'
+#             raise ValidationError(
+#                 msg,
+#                 code='authorization')
+#         attrs['user'] = user
+#         return attrs

@@ -1,15 +1,19 @@
+from datetime import datetime
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+from djoser.views import UserViewSet as DjoserViewSet
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.status import HTTP_400_BAD_REQUEST
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from users.models import Follow, User
 from recipes.models import (Cart, Favorites, Ingredient, Recipe,
                             RecipeIngredient, Tag)
+from .permissions import OwnerAdminOrReadOnly, AdminOrReadOnly
 from .pagination import PageLimitPagination
 from .serializers import (IngredientSerializer, RecipeSerializer,
                           ShortRecipeSerializer, TagSerializer,
@@ -19,12 +23,14 @@ from .serializers import (IngredientSerializer, RecipeSerializer,
 class TagViewSet(ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+    permission_classes = (AdminOrReadOnly,)
 
 
 class RecipeViewSet(ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
     pagination_class = PageLimitPagination
+    permission_classes = (OwnerAdminOrReadOnly,)
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -59,30 +65,44 @@ class RecipeViewSet(ModelViewSet):
             detail=False,
             permission_classes=(IsAuthenticated,))
     def download_shopping_cart(self, request):
-        list_of_products = 'Список продуктов:'
+        user = self.request.user
+        if not user.cart.exists():
+            return Response(status=HTTP_400_BAD_REQUEST)
+
         ingredients = RecipeIngredient.objects.filter(
-            recipe__in_carts__user=request.user
-        ).order_by('ingredient__name').values(
-            'ingredient__name', 'ingredient__measurement_unit'
+            recipe__in_cart__user=user
+        ).values(
+            'ingredient__name',
+            'ingredient__measurement_unit'
         ).annotate(amount=Sum('amount'))
-        for ingredient in ingredients:
-            list_of_products += (
-                f'\n{ingredient["ingredient__name"]} - '
-                f'{ingredient["amount"]} '
-                f'{ingredient["ingredient__measurement_unit"]}'
+
+        today = datetime.today()
+        shopping_list = (
+            f'Список покупок для: {user.get_full_name()}\n\n'
+            f'Дата: {today:%Y-%m-%d}\n\n'
+        )
+
+        for ingr in ingredients:
+            shopping_list.append(
+                f'{ingr["name"]}: {ingr["amount"]} {ingr["measurement"]}'
             )
-        file = 'list_of_products.txt'
-        response = HttpResponse(list_of_products, content_type='text/plain')
-        response['Content-Disposition'] = f'attachment; filename="{file}.txt"'
+
+        shopping_list += f'\n\nFoodgram ({today:%Y})'
+
+        filename = f'{user.username}_shopping_list.txt'
+        response = HttpResponse(shopping_list, content_type='text/plain')
+        response['Content-Disposition'] = f'attachment; filename={filename}'
+
         return response
 
 
-class IngredientViewSet(ModelViewSet):
+class IngredientViewSet(ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
+    permission_classes = (AdminOrReadOnly,)
 
 
-class UserViewSet(ModelViewSet):
+class UserViewSet(DjoserViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     pagination_class = PageLimitPagination
@@ -104,9 +124,9 @@ class UserViewSet(ModelViewSet):
     @action(methods=['post', 'delete'],
             detail=True,
             permission_classes=(IsAuthenticated,))
-    def subscribe(self, request, pk=None):
+    def subscribe(self, request, id):
         user = request.user
-        author = get_object_or_404(User, pk=pk)
+        author = get_object_or_404(User, pk=id)
         if request.method == 'POST':
             if user == author:
                 return Response(
