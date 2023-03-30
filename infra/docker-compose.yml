@@ -3,7 +3,7 @@ services:
   web:
     # image: ../backend/
     build:
-      context: ../backend/foodgram/
+      context: ../backend
       dockerfile: Dockerfile
     restart: always
     volumes:

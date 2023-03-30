@@ -2,6 +2,7 @@ from datetime import datetime
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserViewSet
 from rest_framework import status
 from rest_framework.decorators import action
@@ -13,6 +14,7 @@ from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from users.models import Follow, User
 from recipes.models import (Cart, Favorites, Ingredient, Recipe,
                             RecipeIngredient, Tag)
+from .filters import RecipeFilter
 from .permissions import OwnerAdminOrReadOnly, AdminOrReadOnly
 from .pagination import PageLimitPagination
 from .serializers import (IngredientSerializer, RecipeSerializer,
@@ -31,6 +33,8 @@ class RecipeViewSet(ModelViewSet):
     serializer_class = RecipeSerializer
     pagination_class = PageLimitPagination
     permission_classes = (OwnerAdminOrReadOnly,)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = RecipeFilter
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
