@@ -1,5 +1,8 @@
-from recipes.models import Ingredient, Recipe, Tag, Favorites, Cart
+from rest_framework.exceptions import ValidationError
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
+from rest_framework.status import HTTP_400_BAD_REQUEST
+
+from recipes.models import Cart, Favorites, Ingredient, Recipe, Tag
 from users.models import Follow, User
 
 
@@ -111,39 +114,20 @@ class UserFollowSerializer(UserSerializer):
         )
         read_only_fields = '__all__',
 
+    def validate(self, data):
+        author = self.instance
+        user = self.context.get('request').user
+        if Follow.objects.filter(author=author, user=user).exists():
+            raise ValidationError(
+                detail='Вы уже подписаны на этого пользователя!',
+                code=HTTP_400_BAD_REQUEST
+            )
+        if user == author:
+            raise ValidationError(
+                detail='Вы не можете подписаться на самого себя!',
+                code=HTTP_400_BAD_REQUEST
+            )
+        return data
+
     def get_recipes_count(self, user):
         return user.recipes.count()
-
-
-# class TokenSerializer(Serializer):
-#     email = CharField(
-#         label='Email',
-#         write_only=True)
-#     password = CharField(
-#         label='Пароль',
-#         style={'input_type': 'password'},
-#         trim_whitespace=False,
-#         write_only=True)
-#     token = CharField(
-#         label='Токен',
-#         read_only=True)
-
-#     def validate(self, attrs):
-#         email = attrs.get('email')
-#         password = attrs.get('password')
-#         if email and password:
-#             user = authenticate(
-#                 request=self.context.get('request'),
-#                 email=email,
-#                 password=password)
-#             if not user:
-#                 raise ValidationError(
-#                     ERR_MSG,
-#                     code='authorization')
-#         else:
-#             msg = 'Необходимо указать "адрес электронной почты" и "пароль".'
-#             raise ValidationError(
-#                 msg,
-#                 code='authorization')
-#         attrs['user'] = user
-#         return attrs

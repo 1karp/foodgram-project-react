@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -11,12 +12,12 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_400_BAD_REQUEST
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
-from users.models import Follow, User
 from recipes.models import (Cart, Favorites, Ingredient, Recipe,
                             RecipeIngredient, Tag)
+from users.models import Follow, User
 from .filters import RecipeFilter
-from .permissions import OwnerAdminOrReadOnly, AdminOrReadOnly
 from .pagination import PageLimitPagination
+from .permissions import AdminOrReadOnly, OwnerAdminOrReadOnly
 from .serializers import (IngredientSerializer, RecipeSerializer,
                           ShortRecipeSerializer, TagSerializer,
                           UserFollowSerializer, UserSerializer)
@@ -131,31 +132,15 @@ class UserViewSet(DjoserViewSet):
     def subscribe(self, request, id):
         user = request.user
         author = get_object_or_404(User, pk=id)
+
         if request.method == 'POST':
-            if user == author:
-                return Response(
-                    {'errors': 'Вы не можете подписаться на себя'},
-                    status=status.HTTP_400_BAD_REQUEST)
-            if Follow.objects.filter(user=user, author=author).exists():
-                return Response(
-                    {'errors': 'Вы уже подписаны на этого пользователя'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
             Follow.objects.create(user=user, author=author)
             serializer = UserFollowSerializer(
                 author,
                 context={'request': request}
             )
             return Response(serializer.data)
-        if user == author:
-            return Response(
-                {'errors': 'Вы не можете отписаться от себя'},
-                status=status.HTTP_400_BAD_REQUEST)
-        follow = Follow.objects.filter(user=user, author=author)
-        if not follow.exists():
-            return Response(
-                {'errors': 'Вы не подписаны на этого пользователя'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+
+        follow = get_object_or_404(Follow, user=user, author=author)
         follow.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

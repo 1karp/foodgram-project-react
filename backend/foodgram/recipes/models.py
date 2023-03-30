@@ -57,7 +57,7 @@ class Recipe(models.Model):
         verbose_name='Тег'
     )
 
-    cooking_time = models.IntegerField(
+    cooking_time = models.PositiveSmallIntegerField(
         verbose_name='Время приготовления',
         validators=[MinValueValidator(1)],
         )
@@ -81,7 +81,7 @@ class RecipeIngredient(models.Model):
         Ingredient,
         on_delete=models.CASCADE
     )
-    amount = models.IntegerField(
+    amount = models.PositiveSmallIntegerField(
         verbose_name='Количество',
         validators=[MinValueValidator(1)],
     )
@@ -99,11 +99,6 @@ class Cart(models.Model):
         on_delete=models.CASCADE,
         verbose_name='Пользователь',
         related_name='cart',
-    )
-    date = models.DateTimeField(
-        verbose_name='Добавлен в корзину',
-        auto_now_add=True,
-        editable=False
     )
 
     class Meta:
@@ -123,11 +118,6 @@ class Favorites(models.Model):
         on_delete=models.CASCADE,
         verbose_name='Пользователь',
         related_name='favorites',
-    )
-    date = models.DateTimeField(
-        verbose_name='Добавлен в избранное',
-        auto_now_add=True,
-        editable=False
     )
 
     class Meta:
