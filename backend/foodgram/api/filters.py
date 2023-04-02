@@ -23,4 +23,4 @@ class RecipeFilter(FilterSet):
         user = self.request.user
         if value and not user.is_anonymous:
             return queryset.filter(in_cart__user=user)
-        return
+        return queryset
