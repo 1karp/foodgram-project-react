@@ -8,7 +8,7 @@ on:
 
 jobs:
 
-  tests: 
+  tests:
     name: PEP8 check
     runs-on: ubuntu-latest
     steps:
