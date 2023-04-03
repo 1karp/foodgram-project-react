@@ -84,8 +84,6 @@ DJOSER = {
     'LOGIN_FIELD': 'email',
     'HIDE_USERS': False,
     'PERMISSIONS': {
-        'resipe': ('api.permissions.OwnerAdminOrReadOnly,',),
-        'recipe_list': ('api.permissions.OwnerAdminOrReadOnly',),
         'user': ('api.permissions.OwnerAdminOrReadOnly',),
         'user_list': ('api.permissions.OwnerAdminOrReadOnly',),
     },
