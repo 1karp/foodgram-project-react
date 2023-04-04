@@ -1,3 +1,4 @@
+from drf_extra_fields.fields import Base64ImageField
 from rest_framework.exceptions import ValidationError
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from rest_framework.status import HTTP_400_BAD_REQUEST
@@ -67,6 +68,7 @@ class RecipeSerializer(ModelSerializer):
     author = UserSerializer(read_only=True)
     is_favorited = SerializerMethodField()
     is_in_shopping_cart = SerializerMethodField()
+    image = Base64ImageField()
 
     class Meta:
         model = Recipe
