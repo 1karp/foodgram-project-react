@@ -8,7 +8,6 @@ services:
       - ./.env
 
   web:
-    # image: ../backend/
     image: 1karp/foodgram-backend:latest
     restart: always
     volumes:
@@ -30,7 +29,7 @@ services:
       - web
       - frontend
     ports:
-      - 80:80
+      - "80:80"
     volumes:
       - static_value:/var/html/static/
       - media_value:/var/html/media/
