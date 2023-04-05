@@ -7,7 +7,7 @@ services:
     env_file:
       - ./.env
 
-  web:
+  backend:
     build:
       context: ../backend
       dockerfile: Dockerfile
@@ -30,7 +30,7 @@ services:
   nginx:
     image: nginx:1.19.3
     depends_on:
-      - web
+      - backend
       - frontend
     ports:
       - "80:80"
