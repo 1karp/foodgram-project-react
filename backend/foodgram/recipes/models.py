@@ -40,7 +40,7 @@ class Recipe(models.Model):
 
     image = models.ImageField(
         verbose_name='Изображение',
-        upload_to='media/'
+        upload_to='recipe_image/'
     )
 
     text = models.TextField('Описание', max_length=1000)
