@@ -3,7 +3,8 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from rest_framework.status import HTTP_400_BAD_REQUEST
 
-from recipes.models import Cart, Favorites, Ingredient, Recipe, Tag
+from recipes.models import (Cart, Favorites, Ingredient, Recipe,
+                            RecipeIngredient, Tag)
 from users.models import Follow, User
 
 
@@ -64,7 +65,7 @@ class UserSerializer(ModelSerializer):
 
 
 class RecipeSerializer(ModelSerializer):
-    tags = TagSerializer(many=True, read_only=True)
+    tags = TagSerializer(many=True)
     author = UserSerializer(read_only=True)
     is_favorited = SerializerMethodField()
     is_in_shopping_cart = SerializerMethodField()
@@ -84,6 +85,40 @@ class RecipeSerializer(ModelSerializer):
             'text',
             'cooking_time',
         )
+
+    def create_ingredients(self, ingredients, recipe):
+        RecipeIngredient.objects.bulk_create(
+            [RecipeIngredient(
+                ingredient=Ingredient.objects.get(id=ingredient['id']),
+                recipe=recipe,
+                amount=ingredient['amount']
+            ) for ingredient in ingredients]
+        )
+
+    def create(self, validated_data):
+        tags = validated_data.pop('tags')
+        ingredients = validated_data.pop('ingredients')
+        recipe = Recipe.objects.create(**validated_data)
+        recipe.tags.set(tags)
+        self.create_ingredients(
+            recipe=recipe,
+            ingredients=ingredients
+        )
+        return recipe
+
+    def update(self, recipe, validated_data):
+        tags = validated_data.pop('tags')
+        ingredients = validated_data.pop('ingredients')
+        recipe = super().update(recipe, validated_data)
+        recipe.tags.clear()
+        recipe.tags.set(tags)
+        recipe.ingredients.clear()
+        self.create_ingredients(
+            recipe=recipe,
+            ingredients=ingredients
+        )
+        recipe.save()
+        return recipe
 
     def get_is_favorited(self, recipe):
         user = self.context.get('request').user
