@@ -87,10 +87,12 @@ class RecipeViewSet(ModelViewSet):
             f'Дата: {today:%Y-%m-%d}\n\n'
         )
 
-        for ingr in ingredients:
-            shopping_list.append(
-                f'{ingr["name"]}: {ingr["amount"]} {ingr["measurement"]}'
-            )
+        shopping_list += '\n'.join([
+            f'- {ingredient["ingredient__name"]} '
+            f'({ingredient["ingredient__measurement_unit"]})'
+            f' - {ingredient["amount"]}'
+            for ingredient in ingredients
+        ])
 
         shopping_list += f'\n\nFoodgram ({today:%Y})'
 
