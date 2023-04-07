@@ -1,10 +1,12 @@
 from drf_extra_fields.fields import Base64ImageField
 from django.db.models import F
 from rest_framework.exceptions import ValidationError
-from rest_framework.serializers import ModelSerializer, SerializerMethodField, IntegerField
+from rest_framework.serializers import (ModelSerializer, SerializerMethodField,
+                                        IntegerField)
 from rest_framework.status import HTTP_400_BAD_REQUEST
 
-from recipes.models import Cart, Favorites, Ingredient, Recipe, Tag, RecipeIngredient
+from recipes.models import (Cart, Favorites, Ingredient, Recipe,
+                            Tag, RecipeIngredient)
 from users.models import Follow, User
 
 
@@ -85,10 +87,9 @@ class RecipePostSerializer(ModelSerializer):
         read_only_fields = ('author',)
 
     def get_ingredients(self, recipe):
-        ingredients = recipe.ingredients.values(
+        return recipe.ingredients.values(
             'id', 'name', 'measurement_unit', amount=F('recipe__amount')
         )
-        return ingredients
 
     def create_ingredients(self, ingredients, recipe):
         RecipeIngredient.objects.bulk_create([
