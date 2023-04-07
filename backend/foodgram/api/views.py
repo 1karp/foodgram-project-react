@@ -7,7 +7,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserViewSet
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, SAFE_METHODS
 from rest_framework.response import Response
 from rest_framework.status import HTTP_400_BAD_REQUEST
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
@@ -15,12 +15,13 @@ from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from recipes.models import (Cart, Favorites, Ingredient, Recipe,
                             RecipeIngredient, Tag)
 from users.models import Follow, User
-from .filters import RecipeFilter
+from .filters import IngredientFilter, RecipeFilter
 from .pagination import PageLimitPagination
 from .permissions import AdminOrReadOnly, OwnerAdminOrReadOnly
 from .serializers import (IngredientSerializer, RecipeSerializer,
+                          RecipePostSerializer, UserSerializer,
                           ShortRecipeSerializer, TagSerializer,
-                          UserFollowSerializer, UserSerializer)
+                          UserFollowSerializer)
 
 
 class TagViewSet(ReadOnlyModelViewSet):
@@ -36,6 +37,11 @@ class RecipeViewSet(ModelViewSet):
     permission_classes = (OwnerAdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
+
+    def get_serializer_class(self):
+        if self.request.method in SAFE_METHODS:
+            return RecipeSerializer
+        return RecipePostSerializer
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -107,6 +113,8 @@ class IngredientViewSet(ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     permission_classes = (AdminOrReadOnly,)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = IngredientFilter
 
 
 class UserViewSet(DjoserViewSet):
