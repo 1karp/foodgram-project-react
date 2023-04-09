@@ -1,15 +1,16 @@
 from datetime import datetime
 
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserViewSet
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated, SAFE_METHODS
+from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.status import HTTP_400_BAD_REQUEST
+from rest_framework.status import (HTTP_201_CREATED, HTTP_204_NO_CONTENT,
+                                   HTTP_400_BAD_REQUEST)
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from recipes.models import (Cart, Favorites, Ingredient, Recipe,
@@ -18,10 +19,26 @@ from users.models import Follow, User
 from .filters import IngredientFilter, RecipeFilter
 from .pagination import PageLimitPagination
 from .permissions import AdminOrReadOnly, OwnerAdminOrReadOnly
-from .serializers import (IngredientSerializer, RecipeSerializer,
-                          RecipePostSerializer, UserSerializer,
-                          ShortRecipeSerializer, TagSerializer,
-                          UserFollowSerializer)
+from .serializers import (IngredientSerializer, RecipePostSerializer,
+                          RecipeSerializer, ShortRecipeSerializer,
+                          TagSerializer, UserFollowSerializer, UserSerializer)
+
+
+class AddDelMixin:
+    def _add_del_obj(self, obj_id, m2m_model, q):
+        obj = get_object_or_404(self.queryset, id=obj_id)
+        serializer = self.add_serializer(obj)
+        m2m_obj = m2m_model.objects.filter(q & Q(user=self.request.user))
+
+        if (self.request.method in ('GET', 'POST')) and not m2m_obj:
+            m2m_model(None, obj.id, self.request.user.id).save()
+            return Response(serializer.data, status=HTTP_201_CREATED)
+
+        if (self.request.method in ('DELETE',)) and m2m_obj:
+            m2m_obj[0].delete()
+            return Response(status=HTTP_204_NO_CONTENT)
+
+        return Response(status=HTTP_400_BAD_REQUEST)
 
 
 class TagViewSet(ReadOnlyModelViewSet):
@@ -30,13 +47,14 @@ class TagViewSet(ReadOnlyModelViewSet):
     permission_classes = (AdminOrReadOnly,)
 
 
-class RecipeViewSet(ModelViewSet):
+class RecipeViewSet(ModelViewSet, AddDelMixin):
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
     pagination_class = PageLimitPagination
     permission_classes = (OwnerAdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
+    add_serializer = ShortRecipeSerializer
 
     def get_serializer_class(self):
         if self.request.method in SAFE_METHODS:
@@ -50,27 +68,13 @@ class RecipeViewSet(ModelViewSet):
             detail=True,
             permission_classes=(IsAuthenticated,))
     def favorite(self, request, pk=None):
-        recipe = get_object_or_404(Recipe, pk=pk)
-        if request.method == 'POST':
-            Favorites.objects.create(recipe=recipe, user=request.user)
-            serializer = ShortRecipeSerializer(recipe)
-            return Response(
-                serializer.data,
-                status=status.HTTP_201_CREATED
-            )
-        Favorites.objects.filter(recipe=recipe, user=request.user).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return self._add_del_obj(pk, Favorites, Q(recipe__id=pk))
 
     @action(methods=['post', 'delete'],
             detail=True,
             permission_classes=(IsAuthenticated,))
     def shopping_cart(self, request, pk=None):
-        recipe = get_object_or_404(Recipe, pk=pk)
-        if request.method == 'POST':
-            Cart.objects.create(recipe=recipe, user=request.user)
-            return Response(status=status.HTTP_201_CREATED)
-        Cart.objects.filter(recipe=recipe, user=request.user).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return self._add_del_obj(pk, Cart, Q(recipe__id=pk))
 
     @action(methods=['get'],
             detail=False,
