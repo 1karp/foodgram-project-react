@@ -24,13 +24,27 @@ from .serializers import (IngredientSerializer, RecipePostSerializer,
                           TagSerializer, UserFollowSerializer, UserSerializer)
 
 
-class AddDelMixin:
+class TagViewSet(ReadOnlyModelViewSet):
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
+    permission_classes = (AdminOrReadOnly,)
+
+
+class RecipeViewSet(ModelViewSet):
+    queryset = Recipe.objects.all()
+    serializer_class = RecipeSerializer
+    pagination_class = PageLimitPagination
+    permission_classes = (OwnerAdminOrReadOnly,)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = RecipeFilter
+    add_serializer = ShortRecipeSerializer
+
     def _add_del_obj(self, obj_id, m2m_model, q):
         obj = get_object_or_404(self.queryset, id=obj_id)
         serializer = self.add_serializer(obj)
         m2m_obj = m2m_model.objects.filter(q & Q(user=self.request.user))
 
-        if (self.request.method in ('GET', 'POST')) and not m2m_obj:
+        if (self.request.method in ('POST',)) and not m2m_obj:
             m2m_model(None, obj.id, self.request.user.id).save()
             return Response(serializer.data, status=HTTP_201_CREATED)
 
@@ -39,22 +53,6 @@ class AddDelMixin:
             return Response(status=HTTP_204_NO_CONTENT)
 
         return Response(status=HTTP_400_BAD_REQUEST)
-
-
-class TagViewSet(ReadOnlyModelViewSet):
-    queryset = Tag.objects.all()
-    serializer_class = TagSerializer
-    permission_classes = (AdminOrReadOnly,)
-
-
-class RecipeViewSet(ModelViewSet, AddDelMixin):
-    queryset = Recipe.objects.all()
-    serializer_class = RecipeSerializer
-    pagination_class = PageLimitPagination
-    permission_classes = (OwnerAdminOrReadOnly,)
-    filter_backends = (DjangoFilterBackend,)
-    filterset_class = RecipeFilter
-    add_serializer = ShortRecipeSerializer
 
     def get_serializer_class(self):
         if self.request.method in SAFE_METHODS:
@@ -131,11 +129,10 @@ class UserViewSet(DjoserViewSet):
             permission_classes=(IsAuthenticated,))
     def subscriptions(self, request):
         user = request.user
-        queryset = User.objects.filter(following__user=user)
+        queryset = Follow.objects.filter(user=user)
         pages = self.paginate_queryset(queryset)
         serializer = UserFollowSerializer(
-            pages,
-            many=True,
+            pages, many=True,
             context={'request': request}
         )
         return self.get_paginated_response(serializer.data)

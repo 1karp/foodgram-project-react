@@ -1,10 +1,10 @@
 from django.shortcuts import get_object_or_404
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework.exceptions import ValidationError
-from rest_framework.serializers import (IntegerField, ModelSerializer,
+from rest_framework.serializers import (CharField, EmailField,
+                                        IntegerField, ModelSerializer,
                                         PrimaryKeyRelatedField, ReadOnlyField,
                                         SerializerMethodField)
-from rest_framework.status import HTTP_400_BAD_REQUEST
 
 from recipes.models import (Cart, Favorites, Ingredient, Recipe,
                             RecipeIngredient, Tag)
@@ -54,7 +54,7 @@ class UserSerializer(ModelSerializer):
             return False
         return Follow.objects.filter(user=request.user, author=user).exists()
 
-    def create(self, validated_data: dict) -> User:
+    def create(self, validated_data: dict):
         user = User(
             email=validated_data['email'],
             username=validated_data['username'],
@@ -232,12 +232,23 @@ class RecipeSerializer(ModelSerializer):
         ).exists()
 
 
-class UserFollowSerializer(UserSerializer):
-    recipes = ShortRecipeSerializer(many=True, read_only=True)
+class UserFollowSerializer(ModelSerializer):
+    id = IntegerField(
+        source='author.id')
+    email = EmailField(
+        source='author.email')
+    username = CharField(
+        source='author.username')
+    first_name = CharField(
+        source='author.first_name')
+    last_name = CharField(
+        source='author.last_name')
+    is_subscribed = SerializerMethodField()
+    recipes = SerializerMethodField()
     recipes_count = SerializerMethodField()
 
     class Meta:
-        model = User
+        model = Follow
         fields = (
             'email',
             'id',
@@ -250,20 +261,27 @@ class UserFollowSerializer(UserSerializer):
         )
         read_only_fields = '__all__',
 
-    def validate(self, data):
-        author = self.instance
-        user = self.context.get('request').user
-        if Follow.objects.filter(author=author, user=user).exists():
-            raise ValidationError(
-                detail='Вы уже подписаны на этого пользователя!',
-                code=HTTP_400_BAD_REQUEST
-            )
-        if user == author:
-            raise ValidationError(
-                detail='Вы не можете подписаться на самого себя!',
-                code=HTTP_400_BAD_REQUEST
-            )
-        return data
+    def get_recipes(self, obj):
+        request = self.context.get('request')
+        limit = request.GET.get('recipes_limit')
+        user = obj.author
+        recipes = (
+            Recipe.objects.filter(author=user)[:int(limit)] if limit
+            else Recipe.objects.filter(author=user))
+        return ShortRecipeSerializer(
+            recipes,
+            many=True
+        ).data
 
-    def get_recipes_count(self, user):
-        return user.recipes.count()
+    def get_is_subscribed(self, obj):
+        request = self.context.get('request')
+        if request is None or request.user.is_anonymous:
+            return False
+        return Follow.objects.filter(
+            user=request.user,
+            author=obj.user
+        ).exists()
+
+    def get_recipes_count(self, obj):
+        user = obj.author
+        return Recipe.objects.filter(author=user).count()
