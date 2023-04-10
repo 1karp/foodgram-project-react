@@ -5,6 +5,7 @@ from rest_framework.serializers import (CharField, EmailField,
                                         IntegerField, ModelSerializer,
                                         PrimaryKeyRelatedField, ReadOnlyField,
                                         SerializerMethodField)
+from rest_framework.status import HTTP_400_BAD_REQUEST
 
 from recipes.models import (Cart, Favorites, Ingredient, Recipe,
                             RecipeIngredient, Tag)
@@ -260,6 +261,21 @@ class UserFollowSerializer(ModelSerializer):
             'recipes_count',
         )
         read_only_fields = '__all__',
+
+    def validate(self, data):
+        author = self.instance
+        user = self.context.get('request').user
+        if Follow.objects.filter(author=author, user=user).exists():
+            raise ValidationError(
+                detail='Вы уже подписаны на этого пользователя!',
+                code=HTTP_400_BAD_REQUEST
+            )
+        if user == author:
+            raise ValidationError(
+                detail='Вы не можете подписаться на самого себя!',
+                code=HTTP_400_BAD_REQUEST
+            )
+        return data
 
     def get_recipes(self, obj):
         request = self.context.get('request')
