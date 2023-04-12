@@ -1,9 +1,7 @@
 ![foodgram-project-react Workflow Status](https://github.com/1karp/foodgram-project-react/actions/workflows/foodgram_workflow.yml/badge.svg?branch=master&event=push)
 # Продуктовый помощник Foodgram
 
-После запуска проекта, он будет доступен по адресу http://84.201.157.45
-login:ikarp97@gmail.com
-pass:1
+После запуска проекта, он будет доступен по вашему адресу.
 Как запустить и посмотреть в действии описано ниже.
 
 ## Описание проекта Foodgram
