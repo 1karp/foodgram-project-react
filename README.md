@@ -1,46 +1,49 @@
 ![foodgram-project-react Workflow Status](https://github.com/1karp/foodgram-project-react/actions/workflows/foodgram_workflow.yml/badge.svg?branch=master&event=push)
-# Продуктовый помощник Foodgram
 
-После запуска проекта, он будет доступен по вашему адресу.
-Как запустить и посмотреть в действии описано ниже.
+# Foodgram - Grocery Assistant
 
-## Описание проекта Foodgram
-«Продуктовый помощник»: приложение, на котором пользователи публикуют рецепты кулинарных изделий, подписываться на публикации других авторов и добавлять рецепты в свое избранное.
-Сервис «Список покупок» позволит пользователю создавать список продуктов, которые нужно купить для приготовления выбранных блюд согласно рецепта/ов.
+After launching the project, it will be available at your address. See below for instructions on how to run and view it in action.
 
-## Подготовка и запуск проекта
-### Склонировать репозиторий на локальную машину:
+## Description of the Foodgram Project
+
+"Foodgram" is an application where users can publish recipes of culinary delights, subscribe to publications from other authors, and add recipes to their favorites. The "Shopping List" service allows users to create a list of products needed to prepare selected dishes according to the recipe(s).
+
+## Project Setup and Launch
+
+### Clone the repository to your local machine:
+
 ```
 git clone https://github.com/1karp/foodgram-project-react
 ```
 
-* Cоздайте .env файл и впишите:
+
+* Create a .env file and enter the following information:
     ```
     DB_ENGINE=<django.db.backends.postgresql>
-    DB_NAME=<имя базы данных postgres>
-    DB_USER=<пользователь бд>
-    DB_PASSWORD=<пароль>
+    DB_NAME=<name of the PostgreSQL database>
+    DB_USER=<database user>
+    DB_PASSWORD=<password>
     DB_HOST=<db>
     DB_PORT=<5432>
-    SECRET_KEY=<секретный ключ проекта django>
+    SECRET_KEY=<django project secret key>
     ```
-
   
-* На сервере соберите docker-compose:
+* On the server, build the docker-compose:
 ```
 sudo docker-compose up -d --build
 ```
-* После успешной сборки на сервере выполните команды (только после первого деплоя):
-    - Соберите статические файлы:
+
+* After successful build on the server, execute the following commands (only after the first deployment):
+    - Collect static files:
     ```
     sudo docker-compose exec backend python manage.py collectstatic --noinput
     ```
-    - Примените миграции:
+    - Apply migrations:
     ```
     sudo docker-compose exec backend python manage.py migrate --noinput
     ```
-    - Создать суперпользователя Django:
+    - Create a Django superuser:
     ```
     sudo docker-compose exec backend python manage.py createsuperuser
     ```
-    - Проект будет доступен по вашему IP
+    - The project will be available at your IP address.
